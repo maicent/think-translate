@@ -469,7 +469,10 @@ class TranslateService {
       })()`,
     );
     const source = detect.ok && (detect.confidence ?? 0) > 0.5 ? (detect.language ?? "en") : "en";
-    if (source === TARGET_LANG || source === "und") return { kind: "skip" };
+    // 检测器返回带子标签的 BCP47 (如 "zh-Hans"), 而 TARGET_LANG 可能是 "zh";
+    // 按主语言子标签比较, 否则中文块会被误判为需翻译,
+    // Translator.create("zh-Hans"→"zh") 抛 NotSupportedError → 译文闪一下就消失。
+    if (source === "und" || source.split("-")[0] === TARGET_LANG.split("-")[0]) return { kind: "skip" };
 
     const translated = await this.#chrome!.evaluate<TranslatorOutcome>(
       `(async () => {
